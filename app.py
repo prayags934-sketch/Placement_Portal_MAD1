@@ -1,7 +1,12 @@
-from flask import Flask
-from models import db
+import os
+from flask import Flask, render_template, request, redirect, session, url_for, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"), static_folder=os.path.join(BASE_DIR, "static"))
+app.secret_key = "mad1-secret-key"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///placement.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -10,9 +15,128 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
+
+    admin = User.query.filter_by(role="admin").first()
+    if not admin:
+        admin_user = User(
+            name="Admin",
+            email="admin@iitm.ac.in",
+            password=generate_password_hash("admin123"),
+            role="admin",
+            approved=True
+        )
+        db.session.add(admin_user)
+        db.session.commit()
+
+@app.route("/admin/companies")
+def admin_companies():
+    if session.get("role") != "admin":
+        return redirect("/login")
+    companies = User.query.filter_by(role="company").all()
+    return render_template("admin/companies.html", companies=companies)
+
+@app.route("/admin/approve_company/<int:user_id>")
+def approve_company(user_id):
+    if session.get("role") != "admin":
+        return redirect("/login")
+    company = User.query.get(user_id)
+    if company:
+        company.approved = True
+        db.session.commit()
+    return redirect("/admin/companies")
+
+
 @app.route("/")
 def home():
     return "Placement Portal Running"
 
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+
+        user = User.query.filter_by(email=email).first()
+
+        if user and check_password_hash(user.password, password):
+            if user.role == "company" and not user.approved:
+                flash("Company not approved by admin yet")
+                return redirect("/login")
+            
+            session["user_id"] = user.id
+            session["role"] = user.role
+
+            if user.role == "admin":
+                return redirect("/admin/dashboard")
+            elif user.role == "company":
+                return redirect("/company/dashboard")
+            else:
+                return redirect("/student/dashboard")
+        flash("Invalid credentials")
+
+    return render_template("login.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        password = generate_password_hash(request.form["password"])
+        role = request.form["role"]
+
+        if role == "admin":
+            flash("Admin registration not allowed")
+            return redirect("/register")
+        
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash("Email alreay registered")
+            return redirect("/register")
+        
+        user = User(
+            name=name,
+            email=email,
+            password=password,
+            role=role,
+            approved=True if role == "student" else False
+        )
+
+        db.session.add(user)
+        db.session.commit()
+ 
+        flash("Registration successful. Please login.")
+        return redirect("/login")
+    return render_template("register.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+@app.route("/admin/dashboard")
+def admin_dashboard():
+    if session.get("role") != "admin":
+        return redirect("/login")
+    return render_template("admin/dashboard.html")
+
+@app.route("/company/dashboard")
+def company_dashboard():
+    if session.get("role") != "company":
+        return redirect("/login")
+    return render_template("company/dashboard.html")
+
+@app.route("/student/dashboard")
+def student_dashboard():
+    if session.get("role") != "student":
+        return redirect("/login")
+    return render_template("student/dashboard.html")
+
+            
+    
+
 if __name__ == "__main__":
     app.run(debug=True)
+

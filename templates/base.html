@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html> 
+<head>
+    <title>Placement Portal</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+</head>
+<body>
+    
+    <h2>Placement Portal</h2>
+    <a href="/logout"></a>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>{% for msg in messages %}
+                <li style="color:rgba(255, 0, 0, 0.853);">{{msg}}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+</body>
+</html>

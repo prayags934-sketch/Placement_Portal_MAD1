@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>Company Approvals</h3>
+
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+    {% for c in companies %}
+    <tr>
+        <td>{{c.name}}</td>
+        <td>{{c.email}}</td>
+        <td>
+            {% if c.approved %}
+            Approved
+            {% else %}
+            pending
+            {% endif %}
+        </td>
+        <td>
+            {% if not c.approved %}
+            <a href="/admin/approve_company/{{c.id}}">Approve</a>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
