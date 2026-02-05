@@ -3,7 +3,14 @@
 {% block content %}
 <h2>Admin Dashboard</h2>
 
+<p>Total Students: {{ students_count }}</p>
+<p>Total Companies: {{ companies_count }}</p>
+<p>Total Users: {{ users_count }}</p>
+
+<hr>
+
 <ul><li>
+    <a href="/admin/students">View Students</a><br>
     <a href="/admin/companies">Manage / Approve Companies</a></li>
     <li><a href="/logout">Logout</a></li>
 </ul>

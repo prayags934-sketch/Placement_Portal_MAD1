@@ -50,7 +50,12 @@ def approve_company(user_id):
 def home():
     return "Placement Portal Running"
 
-
+@app.route("/admin/students")
+def admin_students():
+    if session.get("role") != "admin":
+        return redirect("/login")
+    students = User.query.filter_by(role="student").all()
+    return render_template("admin/students.html", students=students)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -120,7 +125,38 @@ def logout():
 def admin_dashboard():
     if session.get("role") != "admin":
         return redirect("/login")
-    return render_template("admin/dashboard.html")
+    
+    total_students = User.query.filter_by(role="student").count()
+    total_companies = User.query.filter_by(role="company").count()
+    total_users = User.query.count()
+
+    return render_template("admin/dashboard.html",
+                           students_count=total_students,
+                           companies_count=total_companies,
+                           users_count=total_users)
+
+@app.route("/admin/deactivate/<int:user_id>")
+def deactivate_user(user_id):
+    if session.get("role") != "admin":
+        return redirect("/login")
+    
+    user = User.query.get(user_id)
+    if user:
+        user.active = False
+        db.session.commit()
+
+    return redirect("/admin/students")
+
+@app.route("/admin/activate/<int:user_id>")
+def activate_user(user_id):
+    if session.get("role") != "admin":
+        return redirect("/login")
+    
+    user = User.query.get(user_id)
+    if user:
+        user.active = True
+        db.session.commit()
+    return redirect("/admin/students")
 
 @app.route("/company/dashboard")
 def company_dashboard():

@@ -1,0 +1,36 @@
+{% extends "base.html"%}
+
+{% block content %}
+<h3>Students List</h3>
+
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+    {% for s in students %}
+    <tr>
+        <td>{{ s.name }}</td>
+        <td>{{ s.email }}</td>
+        <td>
+            {% if s.active %}
+                Active
+            {% else %}
+                Deactivated  
+            {% endif %}
+        </td>
+        <td>
+            {% if s.active %}
+                <a href="/admin/deactivate/{{ s.id }}">Deactivate</a> 
+            {% else %}
+                <a href="/admin/activate/{{ s.id }}"Activate></a>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<a href="/admin/dashboard">Back</a>
+{% endblock %}
