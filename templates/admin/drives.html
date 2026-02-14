@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Placement Drives</h2>
+
+<table border="1">
+    <tr>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+{% for drive in drives %}
+<tr>
+    <td>{{ drive.title }}</td>
+    <td>{{ drive.status}}</td>
+    <td>
+        {% if drive.status == "Pending" %}
+            <a href="/admin/approve-drive/{{ drive.id }}">Approve</a>
+            |
+            <a href="/admin/reject-drive/{{ drive.id }}">Reject</a>
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}
+</table>
+
+<a href="/admin/dashboard">Back</a>
+{% endblock %}

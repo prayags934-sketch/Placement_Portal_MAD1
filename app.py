@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User
+from models import db, PlacementDrive, User
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -28,12 +28,14 @@ with app.app_context():
         db.session.add(admin_user)
         db.session.commit()
 
+
 @app.route("/admin/companies")
 def admin_companies():
     if session.get("role") != "admin":
         return redirect("/login")
     companies = User.query.filter_by(role="company").all()
     return render_template("admin/companies.html", companies=companies)
+
 
 @app.route("/admin/approve_company/<int:user_id>")
 def approve_company(user_id):
@@ -46,9 +48,42 @@ def approve_company(user_id):
     return redirect("/admin/companies")
 
 
+@app.route("/company/dashboard")
+def company_dashboard():
+    if session.get("role") != "company":
+        return redirect("/login")
+    if not session.get("approved"):
+        return "Waiting for admin approval"
+    return render_template("company/dashboard.html")
+
+
+@app.route("/company/create-drive", methods=["GET", "POST"])
+def create_drive():
+    if session.get("role") != "company":
+        return redirect("/login")
+    
+    if request.method == "POST":
+        title = request.form["title"]
+        desc = request.form["description"]
+
+        new_drive = PlacementDrive(
+            title=title,
+            description=desc,
+            company_id=session.get("user_id")
+        )
+
+        db.session.add(new_drive)
+        db.session.commit()
+
+        flash("Drive created successfully!")
+        return redirect("/company/dashboard")
+    return render_template("company/create_drive.html")
+
+
 @app.route("/")
 def home():
     return "Placement Portal Running"
+
 
 @app.route("/admin/students")
 def admin_students():
@@ -56,6 +91,7 @@ def admin_students():
         return redirect("/login")
     students = User.query.filter_by(role="student").all()
     return render_template("admin/students.html", students=students)
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -72,6 +108,7 @@ def login():
             
             session["user_id"] = user.id
             session["role"] = user.role
+            session["approved"] = user.approved
 
             if user.role == "admin":
                 return redirect("/admin/dashboard")
@@ -116,10 +153,12 @@ def register():
         return redirect("/login")
     return render_template("register.html")
 
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
+
 
 @app.route("/admin/dashboard")
 def admin_dashboard():
@@ -135,6 +174,41 @@ def admin_dashboard():
                            companies_count=total_companies,
                            users_count=total_users)
 
+@app.route("/admin/drives")
+def admin_drives():
+    if session.get("role") != "admin":
+        return redirect("/login")
+    
+    drives = PlacementDrive.query.all()
+    return render_template("admin/drives.html", drives=drives)
+
+
+@app.route("/admin/approve-drive/<int:drive_id>")
+def approve_drive(drive_id):
+    if session.get("role") != "admin":
+        return redirect("/login")
+    
+    drive = PlacementDrive.query.get(drive_id)
+    if drive:
+        drive.status = "Approved"
+        db.session.commit()
+
+    return redirect("/admin/drives")
+
+@app.route("/admin/reject-drive/<int:drive_id>")
+def reject_drive(drive_id):
+    if session.get("role") != "admin":
+        return redirect("/login")
+    
+    drive = PlacementDrive.query.get(drive_id)
+    if drive:
+        drive.status = "Rejected"
+        db.session.commit()
+
+    return redirect("/admin/drives")
+
+
+
 @app.route("/admin/deactivate/<int:user_id>")
 def deactivate_user(user_id):
     if session.get("role") != "admin":
@@ -147,6 +221,7 @@ def deactivate_user(user_id):
 
     return redirect("/admin/students")
 
+
 @app.route("/admin/activate/<int:user_id>")
 def activate_user(user_id):
     if session.get("role") != "admin":
@@ -158,11 +233,6 @@ def activate_user(user_id):
         db.session.commit()
     return redirect("/admin/students")
 
-@app.route("/company/dashboard")
-def company_dashboard():
-    if session.get("role") != "company":
-        return redirect("/login")
-    return render_template("company/dashboard.html")
 
 @app.route("/student/dashboard")
 def student_dashboard():

@@ -35,4 +35,15 @@ class Application(db.Model):
     applied_on = db.Column(db.DateTime, default=datetime.utcnow)
 
     status = db.Column(db.String(20), default="Applied")
+
+class PlacementDrive(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+
+    company_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    status = db.Column(db.String(20), default="Pending")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
